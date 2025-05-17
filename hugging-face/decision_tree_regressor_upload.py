@@ -13,6 +13,7 @@ import sys
 # Load environment variables
 load_dotenv()
 hf_token = os.getenv("HF_TOKEN")
+repo_id = os.getenv("HF_REPO_ID")
 
 # Load the dataset with error handling
 csv_path = 'dataset/insurance.csv'
@@ -67,7 +68,7 @@ if hf_token:
         upload_file(
             path_or_fileobj=model_path,
             path_in_repo="decision_tree_pipeline.joblib",
-            repo_id="DaviLago/MachineLearningRegressionModel",
+            repo_id=repo_id,
             repo_type="model"
         )
         print("Model uploaded to Hugging Face Hub.")

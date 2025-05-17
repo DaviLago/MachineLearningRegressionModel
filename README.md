@@ -30,10 +30,10 @@ The model is trained on the `insurance.csv` dataset, which contains the followin
    ```
 
 2. **Prepare your environment:**
-   - Place `insurance.csv` in the `dataset/` folder.
-   - Create a `.env` file with your Hugging Face token (optional for model upload):
+   - Create a `.env` file with your Hugging Face credentials (optional for model upload):
      ```
      HF_TOKEN=your_huggingface_token
+     HF_REPO_ID=your-username/your-repo-name
      ```
 
 3. **Run the training and upload script:**
@@ -43,9 +43,9 @@ The model is trained on the `insurance.csv` dataset, which contains the followin
 
 ## Model Upload
 
-If `HF_TOKEN` is set, the trained model will be uploaded to the Hugging Face Hub under the repository:
+If both `HF_TOKEN` and `HF_REPO_ID` are set, the trained model will be uploaded to the Hugging Face Hub under the repository specified by `HF_REPO_ID`:
 ```
-DaviLago/MachineLearningRegressionModel
+HF_REPO_ID=your-username/your-repo-name
 ```
 
 ## License
