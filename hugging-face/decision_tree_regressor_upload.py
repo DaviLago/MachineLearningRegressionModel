@@ -10,69 +10,85 @@ from dotenv import load_dotenv
 import os
 import sys
 
-# Load environment variables
-load_dotenv()
-hf_token = os.getenv("HF_TOKEN")
-repo_id = os.getenv("HF_REPO_ID")
+def main():
+    # Load environment variables
+    load_dotenv()
+    hf_token = os.getenv("HF_TOKEN")
+    repo_id = os.getenv("HF_REPO_ID")
 
-# Load the dataset with error handling
-csv_path = 'dataset/insurance.csv'
-if not os.path.exists(csv_path):
-    print(f"Error: File '{csv_path}' not found.")
-    sys.exit(1)
+    # Load the dataset with error handling
+    csv_path = 'dataset/insurance.csv'
+    if not os.path.exists(csv_path):
+        print(f"Error: File '{csv_path}' not found.")
+        sys.exit(1)
 
-df = pd.read_csv(csv_path).drop_duplicates()
+    df = pd.read_csv(csv_path).drop_duplicates()
 
-# Features and target
-X = df.drop(columns=['charges'])
-y = df['charges']
+    # Features and target
+    X = df.drop(columns=['charges'])
+    y = df['charges']
 
-# Categorical columns to encode
-categorical_cols = ['smoker', 'region', 'sex']
+    # Categorical columns to encode
+    categorical_cols = ['smoker', 'region', 'sex']
 
-# Preprocessing pipeline
-preprocessor = ColumnTransformer(
-    transformers=[
-        ('cat', OneHotEncoder(drop='first', sparse_output=False), categorical_cols)
-    ],
-    remainder='passthrough'
-)
+    # Preprocessing pipeline
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(drop='first', sparse_output=False), categorical_cols)
+        ],
+        remainder='passthrough'
+    )
 
-# Full pipeline with DecisionTreeRegressor
-pipeline = Pipeline([
-    ('preprocessor', preprocessor),
-    ('regressor', DecisionTreeRegressor(max_depth=5, min_samples_leaf=10, random_state=42))
-])
+    # Full pipeline with DecisionTreeRegressor
+    pipeline = Pipeline([
+        ('preprocessor', preprocessor),
+        ('regressor', DecisionTreeRegressor(max_depth=5, min_samples_leaf=10, random_state=42))
+    ])
 
-# Train-test split
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=pd.qcut(y, q=4)
-)
-
-# Fit the pipeline
-pipeline.fit(X_train, y_train)
-
-# Evaluate and print R² score
-r2_score = pipeline.score(X_test, y_test)
-print(f"R² score on test set: {r2_score:.4f}")
-
-# Save your trained pipeline
-model_path = "hugging-face/decision_tree_pipeline.joblib"
-os.makedirs(os.path.dirname(model_path), exist_ok=True)
-joblib.dump(pipeline, model_path)
-
-# Login to Hugging Face Hub and upload
-if hf_token:
-    login(token=hf_token)
-    if os.path.exists(model_path):
-        upload_file(
-            path_or_fileobj=model_path,
-            path_in_repo="decision_tree_pipeline.joblib",
-            repo_id=repo_id,
-            repo_type="model"
+    # Train-test split
+    try:
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42, stratify=pd.qcut(y, q=4)
         )
-        print("Model uploaded to Hugging Face Hub.")
+    except Exception as e:
+        print(f"Error during train-test split: {e}")
+        sys.exit(1)
+
+    # Fit the pipeline
+    try:
+        pipeline.fit(X_train, y_train)
+    except Exception as e:
+        print(f"Error during model training: {e}")
+        sys.exit(1)
+
+    # Evaluate and print R² score
+    r2_score = pipeline.score(X_test, y_test)
+    print(f"R² score on test set: {r2_score:.4f}")
+
+    # Save your trained pipeline
+    model_path = "hugging-face/decision_tree_pipeline.joblib"
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(pipeline, model_path)
+    print(f"Model saved to {model_path}")
+
+    # Login to Hugging Face Hub and upload
+    if hf_token:
+        try:
+            login(token=hf_token)
+            if os.path.exists(model_path):
+                upload_file(
+                    path_or_fileobj=model_path,
+                    path_in_repo="decision_tree_pipeline.joblib",
+                    repo_id=repo_id,
+                    repo_type="model"
+                )
+                print("Model uploaded to Hugging Face Hub.")
+            else:
+                print(f"Model file '{model_path}' not found. Skipping upload.")
+        except Exception as e:
+            print(f"Error uploading model: {e}")
     else:
-        print(f"Model file '{model_path}' not found. Skipping upload.")
-else:
-    print("HF_TOKEN not found. Skipping Hugging Face upload.")
+        print("HF_TOKEN not found. Skipping Hugging Face upload.")
+
+if __name__ == "__main__":
+    main()
